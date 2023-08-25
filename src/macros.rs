@@ -57,3 +57,32 @@ macro_rules! main {
         }
     }
 }
+
+/// Same as [`main!`](main), but lets you execute any number of setup functions before a `:`.
+#[macro_export]
+macro_rules! setup_main {
+    ($( $setup_func_name:ident ),+ $(,)* : $( $func_name:ident ),+ $(,)*) => {
+        mod iai_wrappers {
+            $(
+                pub fn $func_name() {
+                    let _ = $crate::black_box(super::$func_name());
+                }
+            )+
+        }
+
+        fn main() {
+            $(
+                $setup_func_name();
+            )+
+
+            let benchmarks : &[&(&'static str, fn())]= &[
+
+                $(
+                    &(stringify!($func_name), iai_wrappers::$func_name),
+                )+
+            ];
+
+            $crate::runner(benchmarks);
+        }
+    }
+}
